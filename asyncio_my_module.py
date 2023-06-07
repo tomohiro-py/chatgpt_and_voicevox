@@ -12,9 +12,11 @@ import queue
 import logging
 import random
 
+logging.basicConfig(format='%(asctime)s %(levelname)-8s %(funcName)s %(message)s', level=logging.DEBUG)
 
 def setup_openai():
     openai.api_key = config.openai_api_key
+    logging.debug('Api key has been set up.')
 
 
 async def achat(messages, response_queue):
@@ -27,7 +29,7 @@ async def achat(messages, response_queue):
         messages=messages
         )
     
-    # print("Chat stream Start")
+    logging.debug('Chat stream start.')
     words = []
     chat_response = []
 
@@ -43,11 +45,10 @@ async def achat(messages, response_queue):
             if  '。' in content or '？' in content or '！' in content:
                 sentence = ''.join(words)
                 await response_queue.put(sentence)
-                # print('Sentence was putted')
                 words.clear()
 
         elif choices.finish_reason == 'stop':
-            # print('Chat stream End')
+            logging.debug('Chat stream End')
             print('', flush=True)
             await response_queue.put('[DONE]')
         
@@ -62,13 +63,13 @@ async def voicevox_text_to_query(response_queue, query_queue):
                 await query_queue.put('[DONE]')
                 break
         except asyncio.TimeoutError:
-            # print('reponse_queue is empty')
+            logging.debug('Timeout Error')
             break
         except Exception as e:
-            print(e)
+            logging.critical(e)
             break
 
-        # print(f"Query Start")
+        logging.debug("Query Start")
         params = {'text': item, 'speaker': config.voicevox_charactor_id}
 
         async with aiohttp.ClientSession() as session:
@@ -78,7 +79,7 @@ async def voicevox_text_to_query(response_queue, query_queue):
 
         await query_queue.put(query)
         response_queue.task_done()
-        # print("Query End")
+        logging.debbug("Query End")
 
 
 async def voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_queue) -> bytes:
@@ -90,13 +91,13 @@ async def voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_q
                 co_process_queue.put('[DONE]')
                 break
         except asyncio.TimeoutError:
-            # print('timeout:query_queue is empty')
+            logging.debug("Timeout error")
             break
         except Exception as e:
-            print(e)
+            logging.critical(e)
             break
         
-        # print(f"Synthesis Start")
+        logging.debug("Synthesis Start")
         params = {'speaker': config.voicevox_charactor_id}
         headers = {'content-type': 'application/json'}
 
@@ -111,7 +112,7 @@ async def voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_q
         await synthesis_queue.put(content)
         co_process_queue.put(content)
         query_queue.task_done()
-        # print("Synthesis End")
+        logging.debug("Synthesis End")
 
 
 def play_wavbytes(co_process_queue):
@@ -123,16 +124,16 @@ def play_wavbytes(co_process_queue):
         try:
             wav_file = co_process_queue.get(timeout=15)
             if wav_file == '[DONE]':
-                # print('All processes was done!')
+                logging.debug('All synthesises have been played')
                 break
         except queue.Empty:
-            # print('co_process_queue is empty')
+            logging.debug('co_process_queue is empty')
             break
         except Exception as e:
-            print(e)
+            logging.debug(e)
             break
 
-        # print('Player Start')
+        logging.debug("Player Start")
         wr = wave.open(io.BytesIO(wav_file))
         stream = p.open(
             format=p.get_format_from_width(wr.getsampwidth()),
@@ -147,7 +148,7 @@ def play_wavbytes(co_process_queue):
         else:
             stream.close()
             sleep(.3)
-            # print('Player End')
+            logging.debug("Player End")
 
     p.terminate()
 
