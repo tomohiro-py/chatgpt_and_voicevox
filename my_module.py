@@ -10,6 +10,8 @@ import io
 import json
 import logging
 
+def test():
+    print('test')
 
 def speech_to_text():
     r = sr.Recognizer()
