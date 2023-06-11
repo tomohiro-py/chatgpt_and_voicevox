@@ -21,17 +21,17 @@ def setup_openai():
 def speech_to_text():
     r = sr.Recognizer()
     r.pause_threshold = .8
-    # r.energy_threshold = 4000
-    r.dynamic_energy_threshold = True
+    r.energy_threshold = 4000
+    # r.dynamic_energy_threshold = True
     
     with sr.Microphone() as source:
         while True:
             try:
-                print('Listening...')
+                print('おはなしして！')
                 voice = r.listen(source)
-                print('Adjusting energy threshold...')
-                r.adjust_for_ambient_noise(source, duration=0.5)
-                print('Recognizing...')
+                # print('Adjusting energy threshold...')
+                # r.adjust_for_ambient_noise(source, duration=0.5)
+                print('にんしきちゅう...')
                 text = r.recognize_google(voice, language="ja-JP")
 
                 if text is not None:
@@ -39,7 +39,7 @@ def speech_to_text():
 
             except Exception as e:
             # eが空っぽい。
-                print("Waiting you 5s...")
+                print("5びょうおひるねします...")
                 for i in reversed(range(1,6)):
 
                     if i == 1:
@@ -146,27 +146,33 @@ def play_wavbytes(co_process_queue):
     while True:
         try:
             wav_file = co_process_queue.get(timeout=15)
+
             if wav_file == '[DONE]':
                 break
+            else:
+                wr = wave.open(io.BytesIO(wav_file))
+                stream = p.open(
+                    format=p.get_format_from_width(wr.getsampwidth()),
+                    channels=wr.getnchannels(),
+                    rate=wr.getframerate(),
+                    output=True
+                )
+                data = wr.readframes(chunk)
+
+                while data:
+                    stream.write(data)
+                    data = wr.readframes(chunk)
+                else:
+                    stream.close()
+                    sleep(.3)
+
         except queue.Empty:
+            break
+        except KeyboardInterrupt as e:
+            print("KeyboardInterrrupt was detected...")
             break
         except Exception as e:
             break
-
-        wr = wave.open(io.BytesIO(wav_file))
-        stream = p.open(
-            format=p.get_format_from_width(wr.getsampwidth()),
-            channels=wr.getnchannels(),
-            rate=wr.getframerate(),
-            output=True
-        )
-        data = wr.readframes(chunk)
-        while data:
-            stream.write(data)
-            data = wr.readframes(chunk)
-        else:
-            stream.close()
-            sleep(.3)
 
     p.terminate()
 
@@ -182,13 +188,18 @@ async def async_chatgpt_to_voicevox(messages):
     co_process_queue = multiprocessing.Manager().Queue()
 
     with ProcessPoolExecutor(max_workers=2) as executer:
-        task0 = loop.run_in_executor(executer,play_wavbytes,co_process_queue)
+        try:
+            task0 = loop.run_in_executor(executer,play_wavbytes,co_process_queue)
+        except asyncio.exceptions.CancelledError:
+            print("Executer is canceled")
 
-        async with asyncio.TaskGroup() as tg:
-            task1 = tg.create_task(achat(messages, response_queue))
-            task2 = tg.create_task(voicevox_text_to_query(response_queue, query_queue)) 
-            task3 = tg.create_task(voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_queue))
-    
+        try:
+            async with asyncio.TaskGroup() as tg:
+                    task1 = tg.create_task(achat(messages, response_queue))
+                    task2 = tg.create_task(voicevox_text_to_query(response_queue, query_queue)) 
+                    task3 = tg.create_task(voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_queue))
+        except asyncio.exceptions.CancelledError:
+            print("Taskgroup is canceled.")
     return task1.result()
 
 if __name__ == "__main__":
