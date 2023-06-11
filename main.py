@@ -1,9 +1,8 @@
-import my_module as st
 import openai
-import time
 import config
 from itertools import zip_longest
 import asyncio_my_module as ast
+import my_module as st
 import asyncio
 
 openai.api_key = config.openai_api_key
@@ -19,7 +18,7 @@ def main():
 
     while True:
         # user_content = input('YOU : ')
-        user_content = st.speech_to_text()
+        user_content = ast.speech_to_text()
         print(f'YOU : {user_content}')
 
         if user_content.lower() == "bye now":

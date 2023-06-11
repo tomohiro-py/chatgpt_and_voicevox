@@ -1,22 +1,55 @@
+from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
 import asyncio
-import pyaudio
+import aiohttp
+import queue
 import wave
 import io
-import config
 from time import sleep
-import aiohttp
-import openai
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-import multiprocessing
-import queue
-import logging
-import random
 
-logging.basicConfig(format='%(asctime)s %(levelname)-8s %(funcName)s %(message)s', level=logging.DEBUG)
+import speech_recognition as sr
+import pyaudio
+import openai
+
+import config
+
 
 def setup_openai():
     openai.api_key = config.openai_api_key
-    logging.debug('Api key has been set up.')
+
+
+def speech_to_text():
+    r = sr.Recognizer()
+    r.pause_threshold = .8
+    # r.energy_threshold = 4000
+    r.dynamic_energy_threshold = True
+    
+    with sr.Microphone() as source:
+        while True:
+            try:
+                print('Listening...')
+                voice = r.listen(source)
+                print('Adjusting energy threshold...')
+                r.adjust_for_ambient_noise(source, duration=0.5)
+                print('Recognizing...')
+                text = r.recognize_google(voice, language="ja-JP")
+
+                if text is not None:
+                    break
+
+            except Exception as e:
+            # eが空っぽい。
+                print("Waiting you 5s...")
+                for i in reversed(range(1,6)):
+
+                    if i == 1:
+                        print("{}s...".format(i), flush=True)
+                    else:
+                        print("{}s...".format(i), flush=True, end='')
+                    
+                    sleep(1)
+
+    return text
 
 
 async def achat(messages, response_queue):
@@ -29,7 +62,6 @@ async def achat(messages, response_queue):
         messages=messages
         )
     
-    logging.debug('Chat stream start.')
     words = []
     chat_response = []
 
@@ -48,7 +80,6 @@ async def achat(messages, response_queue):
                 words.clear()
 
         elif choices.finish_reason == 'stop':
-            logging.debug('Chat stream End')
             print('', flush=True)
             await response_queue.put('[DONE]')
         
@@ -63,13 +94,10 @@ async def voicevox_text_to_query(response_queue, query_queue):
                 await query_queue.put('[DONE]')
                 break
         except asyncio.TimeoutError:
-            logging.debug('Timeout Error')
             break
         except Exception as e:
-            logging.critical(e)
             break
 
-        logging.debug("Query Start")
         params = {'text': item, 'speaker': config.voicevox_charactor_id}
 
         async with aiohttp.ClientSession() as session:
@@ -79,7 +107,6 @@ async def voicevox_text_to_query(response_queue, query_queue):
 
         await query_queue.put(query)
         response_queue.task_done()
-        logging.debbug("Query End")
 
 
 async def voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_queue) -> bytes:
@@ -91,13 +118,10 @@ async def voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_q
                 co_process_queue.put('[DONE]')
                 break
         except asyncio.TimeoutError:
-            logging.debug("Timeout error")
             break
         except Exception as e:
-            logging.critical(e)
             break
         
-        logging.debug("Synthesis Start")
         params = {'speaker': config.voicevox_charactor_id}
         headers = {'content-type': 'application/json'}
 
@@ -112,7 +136,6 @@ async def voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_q
         await synthesis_queue.put(content)
         co_process_queue.put(content)
         query_queue.task_done()
-        logging.debug("Synthesis End")
 
 
 def play_wavbytes(co_process_queue):
@@ -124,16 +147,12 @@ def play_wavbytes(co_process_queue):
         try:
             wav_file = co_process_queue.get(timeout=15)
             if wav_file == '[DONE]':
-                logging.debug('All synthesises have been played')
                 break
         except queue.Empty:
-            logging.debug('co_process_queue is empty')
             break
         except Exception as e:
-            logging.debug(e)
             break
 
-        logging.debug("Player Start")
         wr = wave.open(io.BytesIO(wav_file))
         stream = p.open(
             format=p.get_format_from_width(wr.getsampwidth()),
@@ -148,7 +167,6 @@ def play_wavbytes(co_process_queue):
         else:
             stream.close()
             sleep(.3)
-            logging.debug("Player End")
 
     p.terminate()
 

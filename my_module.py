@@ -35,7 +35,7 @@ def speech_to_text():
             # eが空っぽい。
                 print("Waiting you 5s...")
                 for i in reversed(range(1,6)):
-                    print("{}s...".format(i), flush=False, end='')
+                    print("{}s...".format(i), flush=False)
                     sleep(1)
 
     return text
