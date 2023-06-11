@@ -169,7 +169,7 @@ def play_wavbytes(co_process_queue):
         except queue.Empty:
             break
         except KeyboardInterrupt as e:
-            print("KeyboardInterrrupt was detected.")
+            print("KeyboardInterrupt was detected.")
             break
         except Exception as e:
             break
