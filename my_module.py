@@ -1,31 +1,37 @@
-import speech_recognition as sr
-import pyttsx3
-import openai
-import config
-import requests
-from time import sleep, perf_counter
-import pyaudio
+from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
+import asyncio
+import aiohttp
+import queue
 import wave
 import io
-import json
-import logging
+from time import sleep
 
-def test():
-    print('test')
+import speech_recognition as sr
+import pyaudio
+import openai
+
+import config
+
+
+def setup_openai():
+    openai.api_key = config.openai_api_key
+
 
 def speech_to_text():
     r = sr.Recognizer()
     r.pause_threshold = .8
     r.energy_threshold = 4000
+    # r.dynamic_energy_threshold = True
     
     with sr.Microphone() as source:
         while True:
             try:
-                print('start listening...')
+                print('おはなしして！')
                 voice = r.listen(source)
-                r.adjust_for_ambient_noise(source)
-
-                print('recognizing...')
+                # print('Adjusting energy threshold...')
+                # r.adjust_for_ambient_noise(source, duration=0.5)
+                print('にんしきちゅう...')
                 text = r.recognize_google(voice, language="ja-JP")
 
                 if text is not None:
@@ -33,64 +39,141 @@ def speech_to_text():
 
             except Exception as e:
             # eが空っぽい。
-                print("Waiting you 5s...")
+                print("5びょうおひるねします...")
                 for i in reversed(range(1,6)):
-                    print("{}s...".format(i), flush=False)
+
+                    if i == 1:
+                        print("{}s...".format(i), flush=True)
+                    else:
+                        print("{}s...".format(i), flush=True, end='')
+                    
                     sleep(1)
 
     return text
 
-def text_to_speech(text):
-    engine = pyttsx3.init()
-    engine.setProperty("rate",200)
-    engine.setProperty('volume',1.0)    # ボリュームは、0.0~1.0の間で設定します。
 
-    words = text.split()
-    for word in words:
-        engine.say(word)
+async def achat(messages, response_queue):
 
-    engine.runAndWait()
+    res = openai.ChatCompletion.acreate(
+        model=config.openai_model_name,
+        max_tokens=config.openai_max_tokens,
+        temperature=0,
+        stream=True,
+        messages=messages
+        )
+    
+    words = []
+    chat_response = []
 
-def voicevox_text_to_speech(text: str):
-    print('start voicevox process ...')
-    content = voicevox_post_audio_query(text)
-    binary = voicevox_post_synthesis(content)
-    print('audio is ready ...')
-    play_wavbytes(binary)
+    async for chunk in await res:
+        choices = chunk.choices[0]
 
-def voicevox_post_audio_query(text: str) -> dict:
-    params = {'text': text, 'speaker': config.voicevox_charactor_id}
-    res = requests.post('http://127.0.0.1:50021/audio_query', params=params)
-    return res.json()
+        if 'content' in choices.delta.keys():
+            content = choices.delta.content
+            words.append(content)
+            chat_response.append(content)
+            print(content, end="", flush=True)
 
-def voicevox_post_synthesis(audio_query_response: dict) -> bytes:
-    params = {'speaker': config.voicevox_charactor_id}
-    headers = {'content-type': 'application/json'}
-    audio_query_response_json = json.dumps(audio_query_response)
-    res = requests.post(
-        'http://127.0.0.1:50021/synthesis',
-        data=audio_query_response_json,
-        params=params,
-        headers=headers
-    )
-    return res.content
+            if  '。' in content or '？' in content or '！' in content:
+                sentence = ''.join(words)
+                await response_queue.put(sentence)
+                words.clear()
 
-def play_wavbytes(wav_file: bytes):
-    wr: wave.Wave_read = wave.open(io.BytesIO(wav_file))
+        elif choices.finish_reason == 'stop':
+            print('', flush=True)
+            await response_queue.put('[DONE]')
+        
+    return ''.join(chat_response)
+
+        
+async def voicevox_text_to_query(response_queue, query_queue):
+    while True:
+        try:
+            item = await asyncio.wait_for(response_queue.get(), timeout=15)
+            if item == '[DONE]':
+                await query_queue.put('[DONE]')
+                break
+        except asyncio.TimeoutError:
+            break
+        except Exception as e:
+            break
+
+        params = {'text': item, 'speaker': config.voicevox_charactor_id}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post('http://127.0.0.1:50021/audio_query', params=params) as res:
+                byte_str = await res.read()
+                query = byte_str.decode('utf-8')
+
+        await query_queue.put(query)
+        response_queue.task_done()
+
+
+async def voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_queue) -> bytes:
+    
+    while True:
+        try:
+            audio_query_response_json = await asyncio.wait_for(query_queue.get(), timeout=15)
+            if audio_query_response_json == '[DONE]':
+                co_process_queue.put('[DONE]')
+                break
+        except asyncio.TimeoutError:
+            break
+        except Exception as e:
+            break
+        
+        params = {'speaker': config.voicevox_charactor_id}
+        headers = {'content-type': 'application/json'}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                'http://127.0.0.1:50021/synthesis', 
+                data=audio_query_response_json, 
+                headers=headers, 
+                params=params) as res:
+                content = await res.content.read()
+
+        await synthesis_queue.put(content)
+        co_process_queue.put(content)
+        query_queue.task_done()
+
+
+def play_wavbytes(co_process_queue):
+
     p = pyaudio.PyAudio()
-    stream = p.open(
-        format=p.get_format_from_width(wr.getsampwidth()),
-        channels=wr.getnchannels(),
-        rate=wr.getframerate(),
-        output=True
-    )
     chunk = 1024
-    data = wr.readframes(chunk)
-    while data:
-        stream.write(data)
-        data = wr.readframes(chunk)
-    sleep(.5)
-    stream.close()
+
+    while True:
+        try:
+            wav_file = co_process_queue.get(timeout=15)
+
+            if wav_file == '[DONE]':
+                break
+            else:
+                wr = wave.open(io.BytesIO(wav_file))
+                stream = p.open(
+                    format=p.get_format_from_width(wr.getsampwidth()),
+                    channels=wr.getnchannels(),
+                    rate=wr.getframerate(),
+                    output=True
+                )
+                data = wr.readframes(chunk)
+
+                while data:
+                    stream.write(data)
+                    data = wr.readframes(chunk)
+                else:
+                    stream.close()
+                    sleep(.3)
+
+        except queue.Empty:
+            break
+        except KeyboardInterrupt as e:
+            print("KeyboardInterrupt was detected.")
+            break
+        except Exception as e:
+            break
+
     p.terminate()
 
 def play_wavfile(wav_file: str):
@@ -111,36 +194,35 @@ def play_wavfile(wav_file: str):
     stream.close()
     p.terminate()
 
-def create_separeted_wavbytes(list_of_text):
-    global wav_file_list
-    for i, elm in enumerate(list_of_text):
-        if elm:
-            query = voicevox_post_audio_query(elm)
-            wav_bytes = voicevox_post_synthesis(query)
-            wav_file_list.append(wav_bytes)
-            print(f'wav_{i} is created')
-        else:
-            # elmが空欄の場合は、無視。
-            pass
 
-    wav_file_list.append('====END====')
-    print(f'END is appended to the list.')
+async def async_chatgpt_to_voicevox(messages):
+# asyncio.to_thread() is may be good for pyaudio.try it later.
+    setup_openai()
+    
+    loop = asyncio.get_event_loop()
+    response_queue = asyncio.Queue()
+    query_queue = asyncio.Queue()
+    synthesis_queue = asyncio.Queue()
+    co_process_queue = multiprocessing.Manager().Queue()
 
-def play_separated_wavbytes():
-    global wav_file_list
-    i = 0            
-
-    while True:
+    with ProcessPoolExecutor(max_workers=2) as executer:
         try:
-            wav_bytes = wav_file_list.pop(0)
-            if wav_bytes == '====END====':
-                print('all proccess is done.')
-                break
-            else:
-                print(f'wav_{i} now playing.')
-                play_wavbytes(wav_bytes)
-                i += 1
-        except Exception:
-            print('wait 1s')
-            sleep(1)
-            continue
+            task0 = loop.run_in_executor(executer,play_wavbytes,co_process_queue)
+        except asyncio.exceptions.CancelledError:
+            print("Executer is canceled")
+
+        try:
+            async with asyncio.TaskGroup() as tg:
+                    task1 = tg.create_task(achat(messages, response_queue))
+                    task2 = tg.create_task(voicevox_text_to_query(response_queue, query_queue)) 
+                    task3 = tg.create_task(voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_queue))
+        except asyncio.exceptions.CancelledError:
+            print("Taskgroup is canceled.")
+    return task1.result()
+
+if __name__ == "__main__":
+    
+    messages = [{'role': 'system', 'content': 'あなたは優秀なAIアシスタントです。箇条書きの場合でも、必ず句読点を挿入してください。'}, {'role': 'user', 'content': 'こんにちは！'}]
+    result = asyncio.run(async_chatgpt_to_voicevox(messages),debug=False)
+    print(result)
+    
