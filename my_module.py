@@ -125,11 +125,10 @@ async def voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_q
         headers = {'content-type': 'application/json'}
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(
-                'http://127.0.0.1:50021/synthesis', 
-                data=audio_query_response_json, 
-                headers=headers, 
-                params=params) as res:
+            async with session.post('http://127.0.0.1:50021/synthesis', 
+                                    data=audio_query_response_json, 
+                                    headers=headers, 
+                                    params=params) as res:
                 content = await res.content.read()
 
         await synthesis_queue.put(content)

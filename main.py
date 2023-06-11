@@ -8,8 +8,6 @@ import my_module as st
 import config
 
 
-openai.api_key = config.openai_api_key
-
 # st.voicevox_text_to_speech('ハロー！')
 def main():
     with open('system.prompt', 'r', encoding='utf-8') as f:
