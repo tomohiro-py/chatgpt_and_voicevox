@@ -1,7 +1,6 @@
 import openai
 import config
 from itertools import zip_longest
-import asyncio_my_module as ast
 import my_module as st
 import asyncio
 
@@ -18,7 +17,7 @@ def main():
 
     while True:
         # user_content = input('YOU : ')
-        user_content = ast.speech_to_text()
+        user_content = st.speech_to_text()
         print(f'YOU : {user_content}')
 
         if user_content.lower() == "bye now":
@@ -42,7 +41,7 @@ def main():
                 if ai_message is not None:
                     messages.append(ai_message)
         
-        ai_content = asyncio.run(ast.async_chatgpt_to_voicevox(messages))
+        ai_content = asyncio.run(st.async_chatgpt_to_voicevox(messages))
         ai_dict = dict(role='assistant',content=ai_content)
         ai_messages.append(ai_dict)
 
