@@ -6,10 +6,13 @@ import queue
 import wave
 import io
 from time import sleep
+import json
 
 import speech_recognition as sr
 import pyaudio
 import openai
+from vosk import SetLogLevel
+SetLogLevel(-1)
 
 import config
 
@@ -33,12 +36,14 @@ def speech_to_text():
                 # r.adjust_for_ambient_noise(source, duration=0.5)
                 print('にんしきちゅう...')
                 text = r.recognize_google(voice, language="ja-JP")
-
+                # text = json.loads(r.recognize_vosk(voice, language="ja-JP"))['text'].replace(' ','')
+            
                 if text is not None:
                     break
 
             except Exception as e:
             # eが空っぽい。
+                print(e)
                 print("5びょうおひるねします...")
                 for i in reversed(range(1,6)):
 
