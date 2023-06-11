@@ -24,21 +24,23 @@ def setup_openai():
 def speech_to_text():
     r = sr.Recognizer()
     r.pause_threshold = .8
-    r.energy_threshold = 4000
-    # r.dynamic_energy_threshold = True
+    # r.energy_threshold = 4000
+    r.dynamic_energy_threshold = True
     
     with sr.Microphone() as source:
+        print('ちょうせいちゅう...')
+        r.adjust_for_ambient_noise(source, duration=1)
+
         while True:
             try:
                 print('おはなしして！')
                 voice = r.listen(source)
-                # print('Adjusting energy threshold...')
-                # r.adjust_for_ambient_noise(source, duration=0.5)
+
                 print('にんしきちゅう...')
                 text = r.recognize_google(voice, language="ja-JP")
                 # text = json.loads(r.recognize_vosk(voice, language="ja-JP"))['text'].replace(' ','')
             
-                if text is not None:
+                if text != '':
                     break
 
             except Exception as e:
