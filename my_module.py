@@ -6,9 +6,7 @@ import queue
 import wave
 import io
 from time import sleep
-import json
 
-import speech_recognition as sr
 import pyaudio
 import openai
 from vosk import SetLogLevel
@@ -167,7 +165,7 @@ def play_wavbytes(co_process_queue):
         except KeyboardInterrupt as e:
             print("KeyboardInterrupt was detected.")
             break
-        except Exception as e:
+        except Exception:
             break
 
     p.terminate()
