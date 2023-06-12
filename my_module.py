@@ -85,7 +85,7 @@ async def achat(messages, response_queue):
     return ''.join(chat_response)
 
         
-async def voicevox_text_to_query(response_queue, query_queue):
+async def voicevox_text_to_query(session, response_queue, query_queue):
     while True:
         try:
             item = await asyncio.wait_for(response_queue.get(), timeout=15)
@@ -99,16 +99,15 @@ async def voicevox_text_to_query(response_queue, query_queue):
 
         params = {'text': item, 'speaker': config.voicevox_charactor_id}
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post('http://127.0.0.1:50021/audio_query', params=params) as res:
-                byte_str = await res.read()
-                query = byte_str.decode('utf-8')
+        async with session.post('http://127.0.0.1:50021/audio_query', params=params) as res:
+            byte_str = await res.read()
+            query = byte_str.decode('utf-8')
 
         await query_queue.put(query)
         response_queue.task_done()
 
 
-async def voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_queue) -> bytes:
+async def voicevox_query_to_synthesis(session, query_queue, synthesis_queue, co_process_queue) -> bytes:
     
     while True:
         try:
@@ -124,12 +123,11 @@ async def voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_q
         params = {'speaker': config.voicevox_charactor_id}
         headers = {'content-type': 'application/json'}
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post('http://127.0.0.1:50021/synthesis', 
-                                    data=audio_query_response_json, 
-                                    headers=headers, 
-                                    params=params) as res:
-                content = await res.content.read()
+        async with session.post('http://127.0.0.1:50021/synthesis', 
+                                data=audio_query_response_json, 
+                                headers=headers, 
+                                params=params) as res:
+            content = await res.content.read()
 
         await synthesis_queue.put(content)
         co_process_queue.put(content)
@@ -202,21 +200,22 @@ async def async_chatgpt_to_voicevox(messages):
     query_queue = asyncio.Queue()
     synthesis_queue = asyncio.Queue()
     co_process_queue = multiprocessing.Manager().Queue()
+    
+    async with aiohttp.ClientSession() as session:
+        with ProcessPoolExecutor(max_workers=2) as executer:
+            try:
+                task0 = loop.run_in_executor(executer,play_wavbytes,co_process_queue)
+            except asyncio.exceptions.CancelledError:
+                print("Executer is canceled")
 
-    with ProcessPoolExecutor(max_workers=2) as executer:
-        try:
-            task0 = loop.run_in_executor(executer,play_wavbytes,co_process_queue)
-        except asyncio.exceptions.CancelledError:
-            print("Executer is canceled")
-
-        try:
-            async with asyncio.TaskGroup() as tg:
-                    task1 = tg.create_task(achat(messages, response_queue))
-                    task2 = tg.create_task(voicevox_text_to_query(response_queue, query_queue)) 
-                    task3 = tg.create_task(voicevox_query_to_synthesis(query_queue, synthesis_queue, co_process_queue))
-        except asyncio.exceptions.CancelledError:
-            print("Taskgroup is canceled.")
-    return task1.result()
+            try:
+                async with asyncio.TaskGroup() as tg:
+                        task1 = tg.create_task(achat(messages, response_queue))
+                        task2 = tg.create_task(voicevox_text_to_query(session, response_queue, query_queue)) 
+                        task3 = tg.create_task(voicevox_query_to_synthesis(session, query_queue, synthesis_queue, co_process_queue))
+            except asyncio.exceptions.CancelledError:
+                print("Taskgroup is canceled.")
+        return task1.result()
 
 if __name__ == "__main__":
     
