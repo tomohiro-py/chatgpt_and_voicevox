@@ -1,7 +1,6 @@
 from itertools import zip_longest
 import asyncio
 
-import openai
 import speech_recognition as sr
 
 import my_module as st
@@ -18,10 +17,10 @@ def main():
     ai_messages = []
     
     with sr.Microphone() as source:
-        print('ちょうせいちゅう...')
         r = sr.Recognizer()
         r.pause_threshold = .8
         r.energy_threshold = 4000
+        # print('ちょうせいちゅう...')
         # r.dynamic_energy_threshold = True
         # r.adjust_for_ambient_noise(source, duration=1)
 

@@ -5,8 +5,10 @@ import aiohttp
 import queue
 import wave
 import io
+import json
 from time import sleep
 
+from speech_recognition import WaitTimeoutError
 import pyaudio
 import openai
 from vosk import SetLogLevel
@@ -18,34 +20,43 @@ import config
 def setup_openai():
     openai.api_key = config.openai_api_key
 
+def take_five():
+    print("5びょうおひるねします...")
+    for i in reversed(range(1,6)):
 
-def speech_to_text(recognizer, source):
+        if i == 1:
+            print("{}s...".format(i), flush=True)
+        else:
+            print("{}s...".format(i), flush=True, end='')
+        
+        sleep(1)
+
+def speech_to_text(recognizer, source, service='google'):
 
     while True:
         try:
             print('おはなしして！')
-            voice = recognizer.listen(source)
+            voice = recognizer.listen(source, timeout=3.0, phrase_time_limit = 5.0)
 
             print('にんしきちゅう...')
-            text = recognizer.recognize_google(voice, language="ja-JP")
-            # text = json.loads(recognizer.recognize_vosk(voice, language="ja-JP"))['text'].replace(' ','')
+            if service == 'google':
+                text = recognizer.recognize_google(voice, language="ja-JP")
+            elif service == 'vosk':
+                text = json.loads(recognizer.recognize_vosk(voice, language="ja-JP"))['text'].replace(' ','')
         
             if text != '':
                 break
-
-        except Exception as e:
-        # eが空っぽい。
-            print(e)
-            print("5びょうおひるねします...")
-            for i in reversed(range(1,6)):
-
-                if i == 1:
-                    print("{}s...".format(i), flush=True)
-                else:
-                    print("{}s...".format(i), flush=True, end='')
-                
-                sleep(1)
-
+        except WaitTimeoutError as e:
+            print('timeout_error')
+            take_five()
+        except KeyboardInterrupt as e:
+            print('Stopped')
+            raise KeyboardInterrupt
+        except Exception:
+            # eが空っぽい。
+            # print(e)
+            print('An Unknown Error has occurred')
+            take_five()
     return text
 
 
