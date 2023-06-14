@@ -21,9 +21,9 @@ def main():
         print('ちょうせいちゅう...')
         r = sr.Recognizer()
         r.pause_threshold = .8
-        # r.energy_threshold = 4000
-        r.dynamic_energy_threshold = True
-        r.adjust_for_ambient_noise(source, duration=1)
+        r.energy_threshold = 4000
+        # r.dynamic_energy_threshold = True
+        # r.adjust_for_ambient_noise(source, duration=1)
 
         while True:
             # user_content = input('YOU : ')
