@@ -2,6 +2,7 @@ config.py
 dev/
 model/*
 vosk_model
+picovoice_model/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
