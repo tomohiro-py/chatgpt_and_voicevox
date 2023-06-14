@@ -3,12 +3,11 @@ import asyncio
 
 import speech_recognition as sr
 
-import my_module as st
+import my_module as mm
 import config
 
 
-# st.voicevox_text_to_speech('ハロー！')
-def main():
+def main_loop():
     with open('system.prompt', 'r', encoding='utf-8') as f:
         system_content = f.read()
 
@@ -26,14 +25,14 @@ def main():
 
         while True:
             # user_content = input('YOU : ')
-            user_content = st.speech_to_text(r,source)
+            user_content = mm.speech_to_text(r,source)
             print(f'YOU : {user_content}')
 
             if user_content.lower() == "bye now":
-                st.play_wavfile('wave_file/ending.wav')
+                mm.play_wavfile('wave_file/ending.wav')
                 break
             elif user_content == "おしまい":
-                st.play_wavfile('wave_file/ending.wav')
+                mm.play_wavfile('wave_file/ending.wav')
                 break
             else:
                 user_dict = dict(role='user',content=user_content)
@@ -50,7 +49,7 @@ def main():
                     if ai_message is not None:
                         messages.append(ai_message)
             
-            ai_content = asyncio.run(st.async_chatgpt_to_voicevox(messages))
+            ai_content = asyncio.run(mm.async_chatgpt_to_voicevox(messages))
             ai_dict = dict(role='assistant',content=ai_content)
             ai_messages.append(ai_dict)
 
@@ -60,4 +59,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main_loop()
