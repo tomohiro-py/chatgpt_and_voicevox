@@ -5,8 +5,8 @@ import config
 
 
 def main():
-    text = 'これはテスト用の音声ファイルです。'
-    path = 'test.wav'
+    text = 'はい、お呼びですか？'
+    path = 'wave_file/wake_up.wav'
 
     params = {'text': text, 'speaker': config.voicevox_charactor_id}
     audio_query_response = requests.post('http://127.0.0.1:50021/audio_query', params=params).json()

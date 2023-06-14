@@ -17,7 +17,7 @@ def main_loop():
     
     with sr.Microphone() as source:
         r = sr.Recognizer()
-        r.pause_threshold = .8
+        r.pause_threshold = 1.5
         r.energy_threshold = 4000
         # print('ちょうせいちゅう...')
         # r.dynamic_energy_threshold = True

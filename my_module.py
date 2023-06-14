@@ -6,9 +6,10 @@ import queue
 import wave
 import io
 import json
+import string
 from time import sleep
 
-from speech_recognition import WaitTimeoutError
+from speech_recognition import WaitTimeoutError, UnknownValueError, RequestError
 import pyaudio
 import openai
 from vosk import SetLogLevel
@@ -36,7 +37,7 @@ def speech_to_text(recognizer, source, service='google'):
     while True:
         try:
             print('おはなしして！')
-            voice = recognizer.listen(source, timeout=3.0, phrase_time_limit = 5.0)
+            voice = recognizer.listen(source, timeout=10.0, phrase_time_limit = 10.0)
 
             print('にんしきちゅう...')
             if service == 'google':
@@ -46,17 +47,21 @@ def speech_to_text(recognizer, source, service='google'):
         
             if text != '':
                 break
-        except WaitTimeoutError as e:
+        except WaitTimeoutError:
             print('timeout_error')
             take_five()
-        except KeyboardInterrupt as e:
+        except KeyboardInterrupt:
             print('Stopped')
             raise KeyboardInterrupt
+        except UnknownValueError:
+            print("Google Speech Recognition could not understand audio")
+        except RequestError as e:
+            print("Could not request results from Google Speech Recognition service; {0}".format(e))
         except Exception:
             # eが空っぽい。
             # print(e)
             print('An Unknown Error has occurred')
-            take_five()
+            # take_five()
     return text
 
 
@@ -82,6 +87,8 @@ async def achat(messages, response_queue):
             chat_response.append(content)
             print(content, end="", flush=True)
 
+            # if any(char in string.punctuation for char in content):
+            # promptで句読点を工夫すれば使えるかも。
             if  '。' in content or '？' in content or '！' in content:
                 sentence = ''.join(words)
                 await response_queue.put(sentence)
