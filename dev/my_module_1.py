@@ -15,7 +15,7 @@ import openai
 from vosk import SetLogLevel
 SetLogLevel(-1)
 
-import config
+import dev.config as config
 
 
 def setup_openai():

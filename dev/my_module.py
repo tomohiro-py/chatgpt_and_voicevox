@@ -1,7 +1,7 @@
 import speech_recognition as sr
 import pyttsx3
 import openai
-import config
+import dev.config as config
 import requests
 from time import sleep, perf_counter
 import pyaudio

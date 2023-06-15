@@ -55,7 +55,7 @@ class Player:
             p.terminate()
 
 
-    def play_wav_queue(multi_process_queue)->None:
+    def play_wav_queue(self, multi_process_queue)->None:
 
         p = pyaudio.PyAudio()
         chunk = 1024

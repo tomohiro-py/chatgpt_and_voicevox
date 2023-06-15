@@ -1,6 +1,6 @@
 import openai
-import config
 import asyncio
+from . import config
 
 
 
@@ -28,14 +28,11 @@ class Chatgpt:
             return res
         
 
-
-
-        
     async def achat(self, messages:list, response_queue) -> str:
 
         res = openai.ChatCompletion.acreate(
             model=self.model,
-            max_tokens=self.openai_max_tokens,
+            max_tokens=self.max_tokens,
             temperature=self.temperature,
             stream=True,
             messages=messages
@@ -67,14 +64,11 @@ class Chatgpt:
         return ''.join(chat_response)
 
 
-
-
-
 def main():
     messages = [{'role': 'user', 'content': 'はじめまして。なにかジョークをお願いします。'}]
 
     ai = Chatgpt()
-    res = ai.chat(messages)
+    res = ai.chat(messages, message_only=True)
     print(res)
     print(ai.total_tokens)
 

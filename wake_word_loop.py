@@ -1,9 +1,10 @@
 import pvporcupine
 from pvrecorder import PvRecorder
 
-import config
 from main_loop import main_loop
 from my_module import play_wavfile
+
+picovoice_api_key = '+HnEVjviQ1C2gGEnMlCUPHiYPo5eug62cpp/Ofdvv4WSYstgLdro2Q=='
 
 def wake_word_loop():
     keyword_paths = ['picovoice_model/ぼーるっこ_ja_windows_v2_2_0.ppn', 'picovoice_model/ひなあられ_ja_windows_v2_2_0.ppn']
@@ -13,7 +14,7 @@ def wake_word_loop():
 
     try:
         porcupine = pvporcupine.create(
-            access_key=config.picovoice_api_key,
+            access_key=picovoice_api_key,
             # keywords=keywords
             keyword_paths=keyword_paths,
             model_path=model_path,
