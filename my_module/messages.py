@@ -1,7 +1,6 @@
-from itertools import zip_longest
-from prompt_template.system_prompt import system_message
-from prompt_template.messages_template import messages_template
-import config
+from .prompt_template.system_prompt import system_message
+from .prompt_template.messages_template import messages_template
+from . import config
 
 class Messages:
 
