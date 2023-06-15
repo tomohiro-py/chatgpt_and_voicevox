@@ -2,9 +2,9 @@ import pvporcupine
 from pvrecorder import PvRecorder
 
 from main_loop import main_loop
-from my_module import play_wavfile
+from my_module.sound import play_wav
+import config
 
-picovoice_api_key = '+HnEVjviQ1C2gGEnMlCUPHiYPo5eug62cpp/Ofdvv4WSYstgLdro2Q=='
 
 def wake_word_loop():
     keyword_paths = ['picovoice_model/ぼーるっこ_ja_windows_v2_2_0.ppn', 'picovoice_model/ひなあられ_ja_windows_v2_2_0.ppn']
@@ -14,8 +14,7 @@ def wake_word_loop():
 
     try:
         porcupine = pvporcupine.create(
-            access_key=picovoice_api_key,
-            # keywords=keywords
+            access_key=config.picovoice_api_key,
             keyword_paths=keyword_paths,
             model_path=model_path,
             sensitivities=sensitivities,
@@ -34,14 +33,16 @@ def wake_word_loop():
             pcm = recorder.read()
             result = porcupine.process(pcm)
 
-            if result >= 0:
+            if 0 <= result:
                 recorder.stop()
-                play_wavfile('wave_file/wake_up.wav')
+                play_wav('wave_file/wake_up.wav')
                 main_loop()
                 recorder.start()
 
     except KeyboardInterrupt:
         print('Stopping ...')
+    except Exception as e:
+        print('An unknown error has occurred.\n{}'.format(e))
     finally:
         recorder.delete()
         porcupine.delete()

@@ -7,7 +7,7 @@ class Messages:
 
     def __init__(self) -> None:
         self.messages = []
-        self.system_message = system_message
+        self.system_message = dict(role='system',content=system_message)
         self.messages_templeate = messages_template
         self.max_messages = config.openai_max_maesages
 
@@ -37,8 +37,11 @@ class Messages:
         result.insert(0, self.system_message)
         return result
     
+
     def build_from_template(self):
         pass
+
+
 
 def main():
     system_message = "これはシステムメッセージ"
@@ -46,15 +49,13 @@ def main():
     assistant_message = "これはアシスタントメッセージ{}"
 
     msg = Messages()
-    msg.add_system_message(system_message)
+    # msg.add_system_message(system_message)
 
     for i in range(20):
         msg.add_user_message(user_message.format(i))
         msg.add_assistant_message(assistant_message.format(i))
 
-    # print(msg.messages)
-    print(msg.build())
-    # print(msg.build())
+    print(msg.system_message)
 
 if __name__=='__main__':
     main()

@@ -1,7 +1,6 @@
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
 import asyncio
-import aiohttp
 from time import sleep
 
 import speech_recognition as sr
@@ -10,7 +9,6 @@ from my_module.chat_gpt import Chatgpt
 from my_module.voicevox import Voicevox
 from my_module.messages import Messages
 from my_module import sound
-from my_module import config
 
 
 def take_five():

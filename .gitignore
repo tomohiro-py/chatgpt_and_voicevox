@@ -1,7 +1,12 @@
+my_module/config.py
 config.py
+
 dev/
-model/*
-vosk_model
+
+# vosk model
+model/
+
+# picovoice
 picovoice_model/
 
 # Byte-compiled / optimized / DLL files
