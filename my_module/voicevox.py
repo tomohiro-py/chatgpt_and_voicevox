@@ -1,6 +1,7 @@
 import requests
 import json
 import asyncio
+import aiohttp
 
 from . import sound
 
@@ -40,7 +41,7 @@ class Voicevox:
 
         sound.play_wave(res.content)
 
-    async def atext_to_query(self, session, response_queue, query_queue):
+    async def atext_to_query(self, response_queue, query_queue):
         while True:
             try:
                 item = await asyncio.wait_for(response_queue.get(), timeout=15)
@@ -52,17 +53,17 @@ class Voicevox:
             except Exception:
                 break
 
-            params = {'text': item, 'speaker': self.charactor_id}
-
-            async with session.post('http://127.0.0.1:50021/audio_query', params=params) as res:
-                byte_str = await res.read()
-                query = byte_str.decode('utf-8')
+            async with aiohttp.ClientSession() as session:
+                params = {'text': item, 'speaker': self.charactor_id}
+                async with session.post('http://127.0.0.1:50021/audio_query',params=params) as res:
+                    byte_str = await res.read()
+                    query = byte_str.decode('utf-8')
 
             await query_queue.put(query)
             response_queue.task_done()
 
 
-    async def aquery_to_synthesis(self, session, query_queue, synthesis_queue, co_process_queue) -> bytes:
+    async def aquery_to_synthesis(self, query_queue, synthesis_queue, co_process_queue) -> bytes:
         while True:
             try:
                 audio_query_response_json = await asyncio.wait_for(query_queue.get(), timeout=15)
@@ -73,15 +74,16 @@ class Voicevox:
                 break
             except Exception:
                 break
-            
-            params = {'speaker': self.charactor_id}
-            headers = {'content-type': 'application/json'}
 
-            async with session.post('http://127.0.0.1:50021/synthesis', 
-                                    data=audio_query_response_json, 
-                                    headers=headers, 
-                                    params=params) as res:
-                content = await res.content.read()
+            async with aiohttp.ClientSession() as session:
+                params = {'speaker': self.charactor_id}
+                headers = {'content-type': 'application/json'}
+                async with session.post('http://127.0.0.1:50021/synthesis', 
+                                        data=audio_query_response_json, 
+                                        headers=headers, 
+                                        params=params) as res:
+                    
+                    content = await res.content.read()
 
             await synthesis_queue.put(content)
             co_process_queue.put(content)
