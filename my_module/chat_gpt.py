@@ -1,15 +1,16 @@
 import openai
-import asyncio
 from . import config
 
 
-
 class Chatgpt:
-    openai.api_key = config.openai_api_key
-    model = config.openai_model_name
-    max_tokens = config.openai_max_tokens
-    temperature = config.openai_temperature
-    total_tokens = 0
+
+    def __init__(self) -> None:
+        openai.api_key = config.openai_api_key
+        self.model = config.openai_model_name
+        self.max_tokens = config.openai_max_tokens
+        self.temperature = config.openai_temperature
+        self.total_tokens = 0
+        
 
     def chat(self, messages:list, message_only:bool=True) -> str:
         res = openai.ChatCompletion.create(
@@ -50,8 +51,6 @@ class Chatgpt:
                 chat_response.append(content)
                 print(content, end="", flush=True)
 
-                # if any(char in string.punctuation for char in content):
-                # promptで句読点を工夫すれば使えるかも。
                 if  '。' in content or '？' in content or '！' in content:
                     sentence = ''.join(words)
                     await response_queue.put(sentence)

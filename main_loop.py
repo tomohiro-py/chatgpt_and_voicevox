@@ -22,7 +22,7 @@ def take_five():
 
 
 async def async_chatgpt_to_voicevox(messages):
-    vv = Voicevox(20)
+    vv = Voicevox()
     ai = Chatgpt()
     loop = asyncio.get_event_loop()
     response_queue = asyncio.Queue()
@@ -68,6 +68,7 @@ def main_loop():
                     print("Google Speech Recognition could not understand audio")
                 except KeyboardInterrupt:
                     print('Stopped')
+                    # inputの処理を書く
                 except Exception:
                     print('An Unknown Error has occurred')
                     raise Exception

@@ -11,7 +11,7 @@ class Messages:
         self.max_messages = config.openai_max_maesages
 
 
-    def add_system_message(self, system_message):
+    def renew_system_message(self, system_message):
         self.system_message = dict(role='system',content=system_message)
 
 
