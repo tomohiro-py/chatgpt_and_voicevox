@@ -1,5 +1,7 @@
+import json
 import openai
 from . import config
+from .function_google_search import google_search, exec_google_search
 
 
 class Chatgpt:
@@ -35,22 +37,55 @@ class Chatgpt:
             max_tokens=self.max_tokens,
             temperature=self.temperature,
             stream=True,
-            messages=messages
+            messages=messages,
+            functions=[google_search],
+            function_call="auto",
         )
 
         chat_response = []
+        function_name = []
+        function_arg = []
+
         for chunk in res:
             choices = chunk.choices[0]
 
-            if 'content' in choices.delta.keys():
-                content = choices.delta.content
+            if choices.delta.get('content') is not None:
+                content = choices.delta.get('content')
                 chat_response.append(content)
                 print(content, end="", flush=True)
-
-            elif choices.finish_reason == 'stop':
-                print('', flush=True)
             
-        return ''.join(chat_response)
+            if choices.delta.get('function_call') is not None:
+                function_name.append(choices.delta.function_call.get('name'))
+                function_arg.append(choices.delta.function_call.get('arguments'))
+
+            if choices.finish_reason == 'stop':
+                print('', flush=True)
+                return ''.join(list(filter(None, chat_response)))
+            elif choices.finish_reason == 'function_call':
+                print("=== function call ===")
+                return self.execute_function(
+                    ''.join(list(filter(None, function_name))),
+                    ''.join(list(filter(None, function_arg))), 
+                    messages)
+
+
+    def execute_function(self, function_name, function_arg, messages):
+        
+        function_response = exec_google_search(
+            query = json.loads(function_arg).get("query"),
+            num_results = json.loads(function_arg).get("num_results"),
+            api_key = config.google_api_key,
+            cse_id = config.google_cse_id,
+        )
+
+        function_message = dict(role = 'function',
+                                name = function_name,
+                                content = function_response)
+    
+        new_messages = []
+        new_messages.extend(messages)
+        new_messages.append(function_message)
+        return self.chat_stream(new_messages)
         
 
     async def achat(self, messages:list, response_queue) -> str:
