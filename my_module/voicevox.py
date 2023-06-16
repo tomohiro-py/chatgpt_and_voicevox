@@ -4,6 +4,7 @@ import asyncio
 import aiohttp
 
 from . import sound
+from . import config
 
 """
 リファレンスURL
@@ -12,13 +13,15 @@ https://snuow.com/blog/%E3%80%90python%E3%80%91voicevox%E3%82%92python%E3%81%8B%
 
 class Voicevox:
 
-    def __init__(self,charactor_id=0, host="127.0.0.1", port=50021, ):
-        self.charactor_id = charactor_id
+    def __init__(self, host="127.0.0.1", port=50021, ):
+        self.charactor_id = config.voicevox_charactor_id
         self.host = host
         self.port = port
 
+
     def set_charactor(self, charactor_id:int):
         self.charactor_id = charactor_id
+
 
     def speak(self,text=None):
 
@@ -40,6 +43,7 @@ class Voicevox:
         )
 
         sound.play_wave(res.content)
+
 
     async def atext_to_query(self, response_queue, query_queue):
         while True:
