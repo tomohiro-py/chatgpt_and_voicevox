@@ -62,7 +62,7 @@ class Chatgpt:
                 print('', flush=True)
                 return ''.join(list(filter(None, chat_response)))
             elif choices.finish_reason == 'function_call':
-                print("=== function call ===")
+                print(f"=== {function_name} ===")
                 return self.execute_function(
                     ''.join(list(filter(None, function_name))),
                     ''.join(list(filter(None, function_arg))), 
