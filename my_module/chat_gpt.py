@@ -27,6 +27,30 @@ class Chatgpt:
             return res.choices[0].message.content
         else:
             return res
+
+    
+    def chat_stream(self, messages:list) -> str:
+        res = openai.ChatCompletion.create(
+            model=self.model,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            stream=True,
+            messages=messages
+        )
+
+        chat_response = []
+        for chunk in res:
+            choices = chunk.choices[0]
+
+            if 'content' in choices.delta.keys():
+                content = choices.delta.content
+                chat_response.append(content)
+                print(content, end="", flush=True)
+
+            elif choices.finish_reason == 'stop':
+                print('', flush=True)
+            
+        return ''.join(chat_response)
         
 
     async def achat(self, messages:list, response_queue) -> str:
