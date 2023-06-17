@@ -6,7 +6,7 @@ from my_module.messages import Messages
 def main():
     ai = Chatgpt()
     msg = Messages()
-    msg.renew_system_message("あなたは優秀なAIアシスタントです。ユーザーから会話終了の意向を告げられた場合には、'[END]'を回答してください。")
+    msg.renew_system_message("You are an excellent AI assistant. If the user indicates their intention to end the conversation, please respond with '[END]'.")
     # engine = pyttsx3.init()
 
     while True:
