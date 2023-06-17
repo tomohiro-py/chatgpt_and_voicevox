@@ -1,7 +1,9 @@
 import json
 import openai
 from . import config
-from .function_google_search import google_search, exec_google_search
+from .plugin.function_google_search import google_search, exec_google_search
+from .plugin.function_newsapicom import newsapicom, exec_newsapicom
+from .plugin.function_newsapicom_headlines import newsapicom_headlines, exec_newsapicom_headlines
 
 
 class Chatgpt:
@@ -38,7 +40,7 @@ class Chatgpt:
             temperature=self.temperature,
             stream=True,
             messages=messages,
-            functions=[google_search],
+            functions=[google_search, newsapicom, newsapicom_headlines],
             function_call="auto",
         )
 
@@ -62,26 +64,18 @@ class Chatgpt:
                 print('', flush=True)
                 return ''.join(list(filter(None, chat_response)))
             elif choices.finish_reason == 'function_call':
-                print(f"=== execute function ===")
+                print(f"=== {function_name[0]} ===")
                 return self.execute_function(
-                    ''.join(list(filter(None, function_name))),
-                    ''.join(list(filter(None, function_arg))), 
+                    function_name[0],
+                    json.dumps(''.join(function_arg)), 
                     messages)
 
 
-    def execute_function(self, function_name, function_arg, messages):
-        
-        function_response = exec_google_search(
-            query = json.loads(function_arg).get("query"),
-            num_results = json.loads(function_arg).get("num_results"),
-            api_key = config.google_api_key,
-            cse_id = config.google_cse_id,
-        )
-
+    def execute_function(self, function_name:str, function_arg:str, messages:list):
+        res = eval(f'exec_{function_name}({function_arg})')
         function_message = dict(role = 'function',
                                 name = function_name,
-                                content = function_response)
-    
+                                content = res)
         new_messages = []
         new_messages.extend(messages)
         new_messages.append(function_message)

@@ -1,6 +1,8 @@
 import json
 import requests
 
+from . import config
+
 google_search = {
                 "name": "google_search",
                 "description": "Google search, fetch real-time data",
@@ -15,37 +17,25 @@ google_search = {
                             "type": "integer",
                             "description": "The number of search results to return",
                         },
-                        "api_key": {
-                            "type": "string",
-                            "description": "Your Google API key",
-                        },
-                        "cse_id": {
-                            "type": "string",
-                            "description": "Your Google Custom Search Engine ID",
-                        },
                     },
-                    "required": ["query", "num_results", "api_key", "cse_id"],
+                    "required": ["query", "num_results",],
                 },
             }
 
-def exec_google_search(query: str, num_results: int, api_key: str, cse_id: str):
+def exec_google_search(function_arg):
     # Google検索APIのエンドポイント
-    url = "https://www.googleapis.com/customsearch/v1"
+    endpoint = "https://www.googleapis.com/customsearch/v1"
+    query = json.loads(function_arg).get("query"),
+    num_results = json.loads(function_arg).get("num_results"),
     
-    # リクエストパラメータ
     params = {
         "q": query,
         "num": num_results,
-        "key": api_key,
-        "cx": cse_id
+        "key": config.google_api_key,
+        "cx": config.google_cse_id
     }
-    
-    # APIリクエストを送信
-    response = requests.get(url, params=params)
-    
-    # レスポンスを解析
+
+    response = requests.get(endpoint, params=params)
     data = response.json()
     items = data.get("items", [])
-    
-    # 検索結果をJSON形式で返す
     return json.dumps(items)
