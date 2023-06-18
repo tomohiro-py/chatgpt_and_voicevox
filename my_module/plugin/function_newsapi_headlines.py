@@ -9,8 +9,8 @@ documents : https://newsapi.org/docs
 request sample : https://newsapi.org/v2/everything?q=bitcoin&apiKey=943b3931ea32463d99f2feb0d4810ce7&pageSize=3
 """
 
-newsapicom_headlines = {
-    "name": "newsapicom_headlines",
+newsapi_headlines = {
+    "name": "newsapi_headlines",
     "description": "service of 'newsapi.com', fetch live top and breaking news headlines for a country, specific category in a country, single source, or multiple sources",
     "parameters": {
         "type": "object",
@@ -46,7 +46,7 @@ newsapicom_headlines = {
 }
 
 
-def exec_newsapicom_headlines(function_arguments):
+def exec_newsapi_headlines(function_arguments):
 
     arg = json.loads(function_arguments)
     endpoint = "https://newsapi.org/v2/top-headlines"
@@ -59,11 +59,19 @@ def exec_newsapicom_headlines(function_arguments):
         "category": arg.get('category')
     }
     
-    print(params)
     response = requests.get(endpoint, params=params)
-    items = response.json().get("articles", [])
-    return json.dumps(items)
+    articles = response.json().get("articles", [])
 
+    for i in range(len(articles)):
+        del articles[i]['source']
+        del articles[i]['author']
+        del articles[i]['urlToImage']
+        del articles[i]['content']
+
+    # with open("newsapi_headlines_sample.json","w") as f:
+    #     json.dump(articles, f)
+
+    return json.dumps(articles)
 
 """
 RESPONSE SAMPLE

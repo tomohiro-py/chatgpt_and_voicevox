@@ -2,8 +2,8 @@ import json
 import openai
 from . import config
 from .plugin.function_google_search import google_search, exec_google_search
-from .plugin.function_newsapicom import newsapicom, exec_newsapicom
-from .plugin.function_newsapicom_headlines import newsapicom_headlines, exec_newsapicom_headlines
+from .plugin.function_newsapi import newsapi, exec_newsapi
+from .plugin.function_newsapi_headlines import newsapi_headlines, exec_newsapi_headlines
 
 
 class Chatgpt:
@@ -40,7 +40,7 @@ class Chatgpt:
             temperature=self.temperature,
             stream=True,
             messages=messages,
-            functions=[google_search, newsapicom, newsapicom_headlines],
+            functions=[google_search, newsapi, newsapi_headlines],
             function_call="auto",
         )
 
@@ -63,12 +63,15 @@ class Chatgpt:
             if choices.finish_reason == 'stop':
                 print('', flush=True)
                 return ''.join(list(filter(None, chat_response)))
+            
             elif choices.finish_reason == 'function_call':
                 print(f"=== {function_name[0]} ===")
-                return self.execute_function(
+                new_messages_with_function_response = self.execute_function(
                     function_name[0],
                     json.dumps(''.join(function_arg)), 
                     messages)
+                
+                return self.chat_stream(new_messages_with_function_response)
 
 
     def execute_function(self, function_name:str, function_arg:str, messages:list):
@@ -76,10 +79,11 @@ class Chatgpt:
         function_message = dict(role = 'function',
                                 name = function_name,
                                 content = res)
-        new_messages = []
-        new_messages.extend(messages)
-        new_messages.append(function_message)
-        return self.chat_stream(new_messages)
+        new_messages_with_function_response = []
+        new_messages_with_function_response.extend(messages)
+        new_messages_with_function_response.append(function_message)
+
+        return new_messages_with_function_response
         
 
     async def achat(self, messages:list, response_queue) -> str:

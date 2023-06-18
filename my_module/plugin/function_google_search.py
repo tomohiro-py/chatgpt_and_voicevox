@@ -37,5 +37,22 @@ def exec_google_search(function_arg):
 
     response = requests.get(endpoint, params=params)
     data = response.json()
+
     items = data.get("items", [])
+
+    for i in range(len(items)):
+        del items[i]['kind']
+        del items[i]['htmlTitle']
+        del items[i]['displayLink']
+        del items[i]['htmlSnippet']
+        del items[i]['formattedUrl']
+        del items[i]['htmlFormattedUrl']
+        del items[i]['pagemap']
+
+        if items[i].get('cacheId') is not None:
+            del items[i]['cacheId']
+
+    # with open("google_cse_sample.json","w") as f:
+    #     json.dump(items, f)
+
     return json.dumps(items)

@@ -9,8 +9,8 @@ documents : https://newsapi.org/docs
 request sample : https://newsapi.org/v2/everything?q=bitcoin&apiKey=943b3931ea32463d99f2feb0d4810ce7&pageSize=3
 """
 
-newsapicom = {
-    "name": "newsapicom",
+newsapi = {
+    "name": "newsapi",
     "description": "service of 'newsapi.com', \
         Search through millions of articles from over 80,000 large and small news sources and blogs. \
         This suits article discovery and analysis.",
@@ -48,7 +48,7 @@ newsapicom = {
 }
 
 
-def exec_newsapicom(function_arguments):
+def exec_newsapi(function_arguments):
 
     arg = json.loads(function_arguments)
     endpoint = "https://newsapi.org/v2/everything"
@@ -61,8 +61,18 @@ def exec_newsapicom(function_arguments):
     }
 
     response = requests.get(endpoint, params=params)
-    items = response.json().get("articles", [])
-    return json.dumps(items)
+    articles = response.json().get("articles", [])
+
+    for i in range(len(articles)):
+        del articles[i]['source']
+        del articles[i]['author']
+        del articles[i]['urlToImage']
+        del articles[i]['content']
+
+    with open("newsapi_sample.json","w") as f:
+        json.dump(articles, f)
+        
+    return json.dumps(articles)
 
 
 """
