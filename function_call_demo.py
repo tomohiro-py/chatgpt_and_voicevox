@@ -5,7 +5,7 @@ from my_module.messages import Messages
 def main():
     ai = Chatgpt()
     msg = Messages()
-    msg.renew_system_message("""You are an excellent AI assistant.
+    msg.renew_system_message("""You are my good friend.
                                 If you need, You can access real internet.
                                 If the user indicates their intention to end the conversation, 
                                 please respond with '[END]'.""")
