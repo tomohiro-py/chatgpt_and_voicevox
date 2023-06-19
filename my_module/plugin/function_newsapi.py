@@ -1,7 +1,9 @@
 import requests
 import json
-
+from dotenv import load_dotenv
 from . import config
+
+from dotenv import load_dotenv
 
 """
 get api key: https://newsapi.org/

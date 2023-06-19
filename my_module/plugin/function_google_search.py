@@ -1,7 +1,10 @@
+import os
 import json
 import requests
+from dotenv import load_dotenv
 
-from . import config
+load_dotenv()
+
 
 google_search = {
                 "name": "google_search",
@@ -31,8 +34,8 @@ def exec_google_search(function_arg):
     params = {
         "q": query,
         "num": num_results,
-        "key": config.google_api_key,
-        "cx": config.google_cse_id
+        "key": os.getenv('google_api_key'),
+        "cx": os.getenv('google_cse_id')
     }
 
     response = requests.get(endpoint, params=params)
