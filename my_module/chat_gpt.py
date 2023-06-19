@@ -31,9 +31,7 @@ class Chatgpt:
             max_tokens=self.max_tokens,
             temperature=self.temperature,
             stream=False,
-            messages=messages,
-            functions=[google_search, newsapi, newsapi_headlines],
-            function_call="auto",
+            messages=messages
         )
 
         self.total_tokens += res['usage']['total_tokens']
@@ -50,7 +48,9 @@ class Chatgpt:
             max_tokens=self.max_tokens,
             temperature=self.temperature,
             stream=True,
-            messages=messages
+            messages=messages,
+            functions=[google_search, newsapi, newsapi_headlines],
+            function_call="auto",
         )
 
         chat_response = []

@@ -71,8 +71,8 @@ def exec_newsapi(function_arguments):
         del articles[i]['urlToImage']
         del articles[i]['content']
 
-    with open("newsapi_sample.json","w") as f:
-        json.dump(articles, f)
+    # with open("newsapi_sample.json","w") as f:
+    #     json.dump(articles, f)
         
     return json.dumps(articles)
 
