@@ -1,9 +1,9 @@
+import os
 import requests
 import json
-from dotenv import load_dotenv
-from . import config
 
 from dotenv import load_dotenv
+load_dotenv()
 
 """
 get api key: https://newsapi.org/
@@ -57,7 +57,7 @@ def exec_newsapi(function_arguments):
 
     params = {
         "q": arg.get('query'),
-        "apiKey": config.newsapi_key,
+        "apiKey": os.getenv('newsapi_key'),
         "pageSize":arg.get('pageSize'),
         "sortBy":arg.get('sortBy'),
     }
